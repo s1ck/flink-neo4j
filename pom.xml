@@ -41,6 +41,7 @@
             <artifactId>flink-java</artifactId>
             <version>${dep.flink.version}</version>
         </dependency>
+
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-client</artifactId>
@@ -53,25 +54,26 @@
             <version>${dep.junit.version}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-gelly</artifactId>
             <version>${dep.flink.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-test-utils</artifactId>
-            <version>${dep.flink.version}</version>
-            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.flink</groupId>
+                    <artifactId>flink-clients</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Causes problems with overlapping Flink dependencies-->
-        <!--<dependency>-->
-        <!--<groupId>org.neo4j.test</groupId>-->
-        <!--<artifactId>neo4j-harness</artifactId>-->
-        <!--<version>${dep.neo4j.version}</version>-->
-        <!--<scope>test</scope>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>org.neo4j.test</groupId>
+            <artifactId>neo4j-harness</artifactId>
+            <version>${dep.neo4j.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
