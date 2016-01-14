@@ -15,7 +15,7 @@
 
         <plugin.maven-compiler.version>3.0</plugin.maven-compiler.version>
 
-        <dep.flink.version>0.10-SNAPSHOT</dep.flink.version>
+        <dep.flink.version>1.0-SNAPSHOT</dep.flink.version>
         <dep.jersey.version>1.19</dep.jersey.version>
         <dep.junit.version>4.12</dep.junit.version>
         <dep.neo4j.version>2.3.0</dep.neo4j.version>
