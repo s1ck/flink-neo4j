@@ -16,8 +16,12 @@ import org.apache.flink.graph.library.PageRank;
 import org.apache.flink.hadoop.shaded.com.google.common.collect.Lists;
 import org.apache.flink.types.NullValue;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.neo4j.harness.junit.Neo4jRule;
 
+import java.io.File;
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -27,10 +31,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class Neo4jInputTest {
 
+  @Rule
+  public Neo4jRule neo4j = new Neo4jRule()
+          .withConfig("dbms.auth.enabled","false")
+          .copyFrom( new File("plwiki.db") );
+
   @SuppressWarnings("unchecked")
   @Test
   public void countTest() throws Exception {
-    String restURI = "http://localhost:7474/db/data/";
+    String restURI = neo4j.httpURI().resolve("/db/data/").toString();
+//    String restURI = "http://localhost:7474/db/data/";
 
     String cypherQuery = "MATCH (p1:Page)-[:Link]->(p2) RETURN id(p1), id(p2)";
 
@@ -41,8 +51,8 @@ public class Neo4jInputTest {
       .setCypherQuery(cypherQuery)
       .setUsername("neo4j")
       .setPassword("test")
-      .setConnectTimeout(1000)
-      .setReadTimeout(1000)
+      .setConnectTimeout(10000)
+      .setReadTimeout(10000)
       .finish();
 
     DataSet<Tuple2<Integer, Integer>> edges = env.createInput(neoInput,
@@ -65,7 +75,8 @@ public class Neo4jInputTest {
   @SuppressWarnings("unchecked")
   @Test
   public void pageRankTest() throws Exception {
-    String restURI = "http://localhost:7474/db/data/";
+    String restURI = neo4j.httpURI().resolve("/db/data/").toString();
+//    String restURI = "http://localhost:7474/db/data/";
     String cypherQuery = "MATCH (p1:Page)-[:Link]->(p2) RETURN id(p1), id(p2)";
 
     ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
@@ -75,8 +86,8 @@ public class Neo4jInputTest {
       .setCypherQuery(cypherQuery)
       .setUsername("neo4j")
       .setPassword("test")
-      .setConnectTimeout(1000)
-      .setReadTimeout(1000)
+      .setConnectTimeout(10000)
+      .setReadTimeout(10000)
       .finish();
 
     DataSet<Tuple3<Integer, Integer, Double>> edges = env.createInput(neoInput,
