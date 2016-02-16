@@ -1,120 +1,119 @@
 package org.apache.flink.api.java.io.neo4j;
 
-import org.apache.commons.lang.time.StopWatch;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.io.LocalCollectionOutputFormat;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
-import org.apache.flink.graph.Edge;
-import org.apache.flink.graph.Graph;
-import org.apache.flink.graph.Vertex;
-import org.apache.flink.graph.library.PageRank;
 import org.apache.flink.hadoop.shaded.com.google.common.collect.Lists;
-import org.apache.flink.types.NullValue;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.io.File;
-import java.net.URI;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-/**
- * Note: atm, the tests need a running Neo4j instance available at http://localhost:7474.
- *
- */
+import static org.junit.Assert.assertEquals;
+
 public class Neo4jInputTest {
 
   @Rule
   public Neo4jRule neo4j = new Neo4jRule()
-          .withConfig("dbms.auth.enabled","false")
-          .copyFrom( new File("plwiki.db") );
+    .withConfig("dbms.auth.enabled","false")
+    .withFixture("CREATE" +
+      "(alice:User { name : 'Alice', born : 1984, height : 1.72, trust : true  })," +
+      "(bob:User   { name : 'Bob',   born : 1983, height : 1.81, trust : true  })," +
+      "(eve:User   { name : 'Eve',   born : 1984, height : 1.62, trust : false })," +
+      "(alice)-[:KNOWS {since : 2001}]->(bob)," +
+      "(bob)-[:KNOWS   {since : 2002}]->(alice)");
 
   @SuppressWarnings("unchecked")
   @Test
-  public void countTest() throws Exception {
-    String restURI = neo4j.httpURI().resolve("/db/data/").toString();
-//    String restURI = "http://localhost:7474/db/data/";
-
-    String cypherQuery = "MATCH (p1:Page)-[:Link]->(p2) RETURN id(p1), id(p2)";
-
+  public void readTest() throws Exception {
     ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
-    Neo4jInputFormat<Tuple2<Integer, Integer>> neoInput = Neo4jInputFormat.buildNeo4jInputFormat()
-      .setRestURI(restURI)
-      .setCypherQuery(cypherQuery)
-      .setUsername("neo4j")
-      .setPassword("test")
-      .setConnectTimeout(10000)
-      .setReadTimeout(10000)
-      .finish();
+    String restURI = neo4j.httpURI().resolve("/db/data/").toString();
 
-    DataSet<Tuple2<Integer, Integer>> edges = env.createInput(neoInput,
-      new TupleTypeInfo(Tuple2.class, BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO));
+    String vertexQuery = "MATCH (n:User) RETURN id(n), n.name, n.born, n.height, n.trust";
 
-    Graph<Integer, NullValue, NullValue> graph = Graph.fromTuple2DataSet(edges, env);
+    Neo4jInputFormat<Tuple5<Integer, String, Integer, Double, Boolean>> vertexInput =
+      Neo4jInputFormat.buildNeo4jInputFormat()
+        .setRestURI(restURI)
+        .setCypherQuery(vertexQuery)
+        .setConnectTimeout(10000)
+        .setReadTimeout(10000)
+        .finish();
 
-    List<Vertex<Integer, NullValue>> vertexList = Lists.newArrayList();
-    List<Edge<Integer, NullValue>> edgeList = Lists.newArrayList();
+    DataSet<Tuple5<Integer, String, Integer, Double, Boolean>> vertexRows = env.createInput(vertexInput,
+      new TupleTypeInfo<Tuple5<Integer, String, Integer, Double, Boolean>>(
+        BasicTypeInfo.INT_TYPE_INFO,    // id
+        BasicTypeInfo.STRING_TYPE_INFO, // name
+        BasicTypeInfo.INT_TYPE_INFO,    // born
+        BasicTypeInfo.DOUBLE_TYPE_INFO, // height
+        BasicTypeInfo.BOOLEAN_TYPE_INFO // trust
+        ));
 
-    graph.getVertices().output(new LocalCollectionOutputFormat<>(vertexList));
-    graph.getEdges().output(new LocalCollectionOutputFormat<>(edgeList));
+    String edgeQuery = "MATCH (a:User)-[e]->(b:User) RETURN id(e), id(a), id(b), e.since";
+
+    Neo4jInputFormat<Tuple4<Integer, Integer, Integer, Integer>> edgeInput =
+      Neo4jInputFormat.buildNeo4jInputFormat()
+        .setRestURI(restURI)
+        .setCypherQuery(edgeQuery)
+        .setConnectTimeout(10000)
+        .setReadTimeout(10000)
+        .finish();
+
+    DataSet<Tuple4<Integer, Integer, Integer, Integer>> edgeRows = env.createInput(edgeInput,
+      new TupleTypeInfo<Tuple4<Integer, Integer, Integer, Integer>>(
+        BasicTypeInfo.INT_TYPE_INFO, // edge id
+        BasicTypeInfo.INT_TYPE_INFO, // source id
+        BasicTypeInfo.INT_TYPE_INFO, // target id
+        BasicTypeInfo.INT_TYPE_INFO  // since
+      ));
+
+    List<Tuple5<Integer, String, Integer, Double, Boolean>> vertexList = Lists.newArrayList();
+    List<Tuple4<Integer, Integer, Integer, Integer>> edgeList = Lists.newArrayList();
+
+    vertexRows.output(new LocalCollectionOutputFormat<>(vertexList));
+    edgeRows.output(new LocalCollectionOutputFormat<>(edgeList));
 
     env.execute();
 
-    Assert.assertEquals("wrong vertex count", 430602, vertexList.size());
-    Assert.assertEquals("wrong edge count", 2727302, edgeList.size());
-  }
+    assertEquals("wrong number of vertices", 3, vertexList.size());
+    assertEquals("wrong number of edges", 2, edgeList.size());
 
-  @SuppressWarnings("unchecked")
-  @Test
-  public void pageRankTest() throws Exception {
-    String restURI = neo4j.httpURI().resolve("/db/data/").toString();
-//    String restURI = "http://localhost:7474/db/data/";
-    String cypherQuery = "MATCH (p1:Page)-[:Link]->(p2) RETURN id(p1), id(p2)";
+    Integer idAlice = 0, idBob = 0;
 
-    ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-
-    Neo4jInputFormat<Tuple2<Integer, Integer>> neoInput = Neo4jInputFormat.buildNeo4jInputFormat()
-      .setRestURI(restURI)
-      .setCypherQuery(cypherQuery)
-      .setUsername("neo4j")
-      .setPassword("test")
-      .setConnectTimeout(10000)
-      .setReadTimeout(10000)
-      .finish();
-
-    DataSet<Tuple3<Integer, Integer, Double>> edges = env.createInput(neoInput,
-      new TupleTypeInfo(Tuple2.class, BasicTypeInfo.INT_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO))
-      .map(new MapFunction<Tuple2<Integer, Integer>, Tuple3<Integer, Integer, Double>>() {
-        @Override
-        public Tuple3<Integer, Integer, Double> map(Tuple2<Integer, Integer> neoEdge) throws Exception {
-          return new Edge<>(neoEdge.f0, neoEdge.f1, 1.0);
-        }
-      }).withForwardedFields("f0;f1");
-
-
-    Graph<Integer, Double, Double> graph = Graph.fromTupleDataSet(edges, new VertexInitializer(), env);
-
-    DataSet<Vertex<Integer, Double>> ranks = graph.run(new PageRank<Integer>(0.85, 5));
-
-    ranks.collect();
-
-    System.out.println(String.format("NetRuntime [s]: %d",
-      env.getLastJobExecutionResult().getNetRuntime(TimeUnit.SECONDS)));
-  }
-
-  private static class VertexInitializer implements MapFunction<Integer, Double> {
-
-    @Override
-    public Double map(Integer integer) throws Exception {
-      return 1.0;
+    for (Tuple5<Integer, String, Integer, Double, Boolean> vertex : vertexList) {
+      if (vertex.f1.equals("Alice")) {
+        idAlice = vertex.f0;
+        validateVertex(vertex, 1984, 1.72, Boolean.TRUE);
+      } else if (vertex.f1.equals("Bob")) {
+        idBob = vertex.f0;
+        validateVertex(vertex, 1983, 1.81, Boolean.TRUE);
+      } else if (vertex.f1.equals("Eve")) {
+        validateVertex(vertex, 1984, 1.62, Boolean.FALSE);
+      }
     }
+
+    for (Tuple4<Integer, Integer, Integer, Integer> edge : edgeList) {
+      if (edge.f1.equals(idAlice)) {
+        validateEdge(edge, idBob, 2001);
+      } else if (edge.f1.equals(idBob)) {
+        validateEdge(edge, idAlice, 2002);
+      }
+    }
+  }
+
+  private void validateEdge(Tuple4<Integer, Integer, Integer, Integer> edge, Integer targetId, int since) {
+    assertEquals("wrong target vertex id", targetId, edge.f2);
+    assertEquals("wrong property value (since)", Integer.valueOf(since), edge.f3);
+  }
+
+  private void validateVertex(Tuple5<Integer, String, Integer, Double, Boolean> vertex, int born, double weight, boolean trust) {
+    assertEquals("wrong property value (since)",  Integer.valueOf(born), vertex.f2);
+    assertEquals("wrong property value (born)",   Double.valueOf(weight), vertex.f3);
+    assertEquals("wrong property value (weight)", trust, vertex.f4);
   }
 }
