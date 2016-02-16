@@ -7,6 +7,33 @@
     <groupId>org.s1ck</groupId>
     <artifactId>flink-neo4j</artifactId>
     <version>0.1-SNAPSHOT</version>
+    
+    <name>Flink-NEO4J-Import</name>
+    <description>Input format to read Cypher results from Neo4j into Flink tuples for further processing.</description>
+    <url>http://github.com/s1ck/flink-neo4j</url>
+    
+    <developers>
+       <developer>
+            <name>Martin Junghanns</name>
+            <email>m.junghanns@mailbox.org</email>
+            <organization>Leipzig University</organization>
+            <organizationUrl>http://dbs.uni-leipzig.de/</organizationUrl>
+            <id>s1ck</id>
+        </developer>
+    </developers>
+    
+    <scm>
+       <connection>scm:git:s1ck@github.com/s1ck/flink-neo4j.git</connection>
+       <developerConnection>scm:s1ck@github.com/s1ck/flink-neo4j.git</developerConnection>
+       <url>http://github.com/s1ck/flink-neo4j.git</url>
+    </scm>
+    
+    <distributionManagement>
+        <repository>
+            <id>dbleipzig</id>
+            <url>https://wdiserv1.informatik.uni-leipzig.de:443/archiva/repository/dbleipzig/</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
