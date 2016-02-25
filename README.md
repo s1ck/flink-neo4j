@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/s1ck/flink-neo4j.svg?branch=master)](https://travis-ci.org/s1ck/flink-neo4j)
+
+
 ## flink-neo4j
 
 Contains input and output formats to read Cypher results from Neo4j and write data back in parallel using Cypher batches.
