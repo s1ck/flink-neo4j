@@ -35,7 +35,8 @@ import java.util.regex.Pattern;
 
 import static org.apache.flink.shaded.com.google.common.base.Preconditions.checkArgument;
 
-public class Neo4jOutputFormat<OUT extends Tuple> extends Neo4jFormatBase implements OutputFormat<OUT> {
+public class Neo4jOutputFormat<OUT extends Tuple>
+  extends Neo4jFormatBase implements OutputFormat<OUT> {
 
   private static final long serialVersionUID = 1L;
 
@@ -55,8 +56,8 @@ public class Neo4jOutputFormat<OUT extends Tuple> extends Neo4jFormatBase implem
   private Class[] elementTypes;
 
   /**
-   * Payload is continuously build as long as tuples come in. If the batch is full, or there are no more tuples, the
-   * payload replaces the parameter in the query and get send to Neo4j.
+   * Payload is continuously build as long as tuples come in. If the batch is full, or there are no
+   * more tuples, the payload replaces the parameter in the query and get send to Neo4j.
    */
   private StringBuilder payload;
 
@@ -106,12 +107,13 @@ public class Neo4jOutputFormat<OUT extends Tuple> extends Neo4jFormatBase implem
   }
 
   /**
-   * Returns the parameter name contained in the query, e.g. "UNWIND {params} MATCH ..." returns "{UNWIND}"
+   * Returns the parameter name contained in the query,
+   * e.g. "UNWIND {params} MATCH ..." returns "{UNWIND}"
    *
    * @return parameter name
    */
   private String getParameterName() {
-    Pattern pattern = Pattern.compile("[uU][nN][wW][iI][nN][dD] (\\{.+\\}) .*");
+    Pattern pattern = Pattern.compile("^[uU][nN][wW][iI][nN][dD] (\\{.+\\}) .*");
     Matcher matcher = pattern.matcher(getQuery());
     if (matcher.matches()) {
       return matcher.group(1);

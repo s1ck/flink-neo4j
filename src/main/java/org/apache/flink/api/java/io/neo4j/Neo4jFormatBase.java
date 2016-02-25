@@ -23,6 +23,10 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 
 import java.io.Serializable;
 
+/**
+ * Base class for {@link Neo4jInputFormat} and {@link Neo4jOutputFormat} which handles connection
+ * related information.
+ */
 public abstract class Neo4jFormatBase implements Serializable {
 
   private static final long serialVersionUID = 1L;
