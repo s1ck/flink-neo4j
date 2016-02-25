@@ -1,6 +1,6 @@
 ## flink-neo4j
 
-Input format to read Cypher results from Neo4j into Flink tuples for further processing.
+Contains input and output formats to read Cypher results from Neo4j and write data back in parallel using Cypher batches.
 
 ## Setup
 
