@@ -86,14 +86,18 @@ public class Neo4jInputTest {
     Integer idAlice = 0, idBob = 0;
 
     for (Tuple5<Integer, String, Integer, Double, Boolean> vertex : vertexList) {
-      if (vertex.f1.equals("Alice")) {
-        idAlice = vertex.f0;
-        validateVertex(vertex, 1984, 1.72, Boolean.TRUE);
-      } else if (vertex.f1.equals("Bob")) {
-        idBob = vertex.f0;
-        validateVertex(vertex, 1983, 1.81, Boolean.TRUE);
-      } else if (vertex.f1.equals("Eve")) {
-        validateVertex(vertex, 1984, 1.62, Boolean.FALSE);
+      switch (vertex.f1) {
+        case "Alice":
+          idAlice = vertex.f0;
+          validateVertex(vertex, 1984, 1.72, Boolean.TRUE);
+          break;
+        case "Bob":
+          idBob = vertex.f0;
+          validateVertex(vertex, 1983, 1.81, Boolean.TRUE);
+          break;
+        case "Eve":
+          validateVertex(vertex, 1984, 1.62, Boolean.FALSE);
+          break;
       }
     }
 

@@ -20,17 +20,16 @@ package org.apache.flink.api.java.io.neo4j;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.io.DefaultInputSplitAssigner;
+import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.NonParallelInput;
-import org.apache.flink.api.common.io.RichInputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.GenericInputSplit;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.core.io.InputSplitAssigner;
+import org.apache.flink.hadoop.shaded.com.google.common.base.Strings;
 import org.apache.flink.types.NullValue;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParser;
@@ -40,29 +39,18 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 
-public class Neo4jInputFormat<OUT extends Tuple> extends RichInputFormat<OUT, InputSplit> implements NonParallelInput {
+public class Neo4jInputFormat<OUT extends Tuple> extends Neo4jFormatBase
+  implements InputFormat<OUT, InputSplit>, NonParallelInput {
 
   private static final long serialVersionUID = 1L;
 
-  private static final String TRANSACTION_URI = "transaction/commit";
-  private static final String ROW_FIELD = "row";
-  private static final String PAYLOAD_TEMPLATE = "{\"statements\" : [ {\"statement\" : \"%s\"} ]}";
-
-  private String restURI;
-  private String query;
-  private String username;
-  private String password;
-  private int connectTimeout = 30;
-  private int readTimeout = 30;
-
-  private transient Client client;
   private transient ClientResponse response;
 
   private transient JsonParser jsonParser;
 
   @Override
   public void open(InputSplit ignored) throws IOException {
-    client = createClient();
+    Client client = createClient();
 
     String payload = String.format(PAYLOAD_TEMPLATE, query);
 
@@ -176,22 +164,6 @@ public class Neo4jInputFormat<OUT extends Tuple> extends RichInputFormat<OUT, In
     return new DefaultInputSplitAssigner(inputSplits);
   }
 
-  /**
-   * Create and configure the client for the REST call.
-   *
-   * @return Client
-   */
-  private Client createClient() {
-    Client client = Client.create();
-    client.setConnectTimeout(connectTimeout);
-    client.setReadTimeout(readTimeout);
-
-    if (username != null && password != null) {
-      client.addFilter(new HTTPBasicAuthFilter(username, password));
-    }
-    return client;
-  }
-
   public static Neo4jInputFormatBuilder buildNeo4jInputFormat() {
     return new Neo4jInputFormatBuilder();
   }
@@ -234,10 +206,10 @@ public class Neo4jInputFormat<OUT extends Tuple> extends RichInputFormat<OUT, In
     }
 
     public Neo4jInputFormat finish() {
-      if (StringUtils.isEmpty(format.restURI)) {
+      if (Strings.isNullOrEmpty(format.restURI)) {
         throw new IllegalArgumentException("No Rest URI was supplied.");
       }
-      if (StringUtils.isEmpty(format.query)) {
+      if (Strings.isNullOrEmpty(format.query)) {
         throw new IllegalArgumentException("No Cypher statement was supplied.");
       }
       return format;
