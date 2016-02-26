@@ -35,7 +35,8 @@ public abstract class Neo4jFormatBase implements Serializable {
 
   protected static final String ROW_FIELD = "row";
 
-  protected static final String PAYLOAD_TEMPLATE = "{\"statements\" : [ {\"statement\" : \"%s\"} ]}";
+  protected static final String PAYLOAD_TEMPLATE =
+    "{\"statements\" : [ {\"statement\" : \"%s\", \"parameters\" : {%s} }]}";
 
   protected String restURI;
 

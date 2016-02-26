@@ -52,7 +52,7 @@ public class Neo4jInputFormat<OUT extends Tuple> extends Neo4jFormatBase
   public void open(InputSplit ignored) throws IOException {
     Client client = createClient();
 
-    String payload = String.format(PAYLOAD_TEMPLATE, query);
+    String payload = String.format(PAYLOAD_TEMPLATE, query, "");
 
     response = client
       .resource(restURI + TRANSACTION_URI)

@@ -25,7 +25,7 @@ public class Neo4jOutputTest extends Neo4jFormatTest {
       "UNWIND {inserts} AS i " +
       "CREATE (a:User {name:i.name, born:i.born, height:i.height, trust:i.trust})";
 
-    Neo4jOutputFormat<Tuple4<String, Long, Double, Boolean>> outputFormat = Neo4jOutputFormat
+    Neo4jOutputFormat<Tuple4<String, Integer, Double, Boolean>> outputFormat = Neo4jOutputFormat
       .buildNeo4jOutputFormat()
       .setRestURI(restURI)
       .setConnectTimeout(1_000)
@@ -38,8 +38,8 @@ public class Neo4jOutputTest extends Neo4jFormatTest {
       .finish();
 
     environment.fromElements(
-      new Tuple4<>("Frank", 1982L, 1.84d, true),
-      new Tuple4<>("Dave", 1976L, 1.82d, true))
+      new Tuple4<>("Frank", 1982, 1.84d, true),
+      new Tuple4<>("Dave", 1976, 1.82d, true))
       .output(outputFormat);
 
     environment.execute();
@@ -57,11 +57,11 @@ public class Neo4jOutputTest extends Neo4jFormatTest {
         rows++;
         Map<String, Object> row = result.next();
         if (row.get("name").equals("Frank")) {
-          assertEquals("wrong born attribute value", 1982L, row.get("born"));
+          assertEquals("wrong born attribute value", 1982, row.get("born"));
           assertEquals("wrong height attribute value", 1.84d, row.get("height"));
           assertEquals("wrong trust attribute value", true, row.get("trust"));
         } else if (row.get("name").equals("Dave")){
-          assertEquals("wrong born attribute value", 1976L, row.get("born"));
+          assertEquals("wrong born attribute value", 1976, row.get("born"));
           assertEquals("wrong height attribute value", 1.82d, row.get("height"));
           assertEquals("wrong trust attribute value", true, row.get("trust"));
         } else {
@@ -86,7 +86,7 @@ public class Neo4jOutputTest extends Neo4jFormatTest {
       "WHERE p.name = u.name " +
       "SET p.weight = u.weight, p.height = u.height, p.trust = u.trust";
 
-    Neo4jOutputFormat<Tuple4<String, Long, Double, Boolean>> outputFormat = Neo4jOutputFormat
+    Neo4jOutputFormat<Tuple4<String, Integer, Double, Boolean>> outputFormat = Neo4jOutputFormat
       .buildNeo4jOutputFormat()
       .setRestURI(restURI)
       .setConnectTimeout(10_000)
@@ -99,8 +99,8 @@ public class Neo4jOutputTest extends Neo4jFormatTest {
       .finish();
 
     environment.fromElements(
-      new Tuple4<>("Alice", 42L, 1.74d, false),
-      new Tuple4<>("Bob", 75L, 1.82d, true))
+      new Tuple4<>("Alice", 42, 1.74d, false),
+      new Tuple4<>("Bob", 75, 1.82d, true))
       .output(outputFormat);
 
     environment.execute();
@@ -119,11 +119,11 @@ public class Neo4jOutputTest extends Neo4jFormatTest {
         rows++;
         Map<String, Object> row = result.next();
         if (row.get("name").equals("Alice")) {
-          assertEquals("wrong weight attribute value", 42L, row.get("weight"));
+          assertEquals("wrong weight attribute value", 42, row.get("weight"));
           assertEquals("wrong height attribute value", 1.74d, row.get("height"));
           assertEquals("wrong trust attribute value", false, row.get("trust"));
         } else if (row.get("name").equals("Bob")) {
-          assertEquals("wrong weight attribute value", 75L, row.get("weight"));
+          assertEquals("wrong weight attribute value", 75, row.get("weight"));
           assertEquals("wrong height attribute value", 1.82d, row.get("height"));
           assertEquals("wrong trust attribute value", true, row.get("trust"));
         } else {

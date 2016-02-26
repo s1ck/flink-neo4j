@@ -25,6 +25,8 @@ import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.hadoop.shaded.com.google.common.base.Strings;
 import org.apache.flink.hadoop.shaded.com.google.common.collect.Lists;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -62,6 +64,11 @@ public class Neo4jOutputFormat<OUT extends Tuple>
   private StringBuilder payload;
 
   /**
+   * Used to build parameter maps.
+   */
+  private JsonNodeFactory nodeFactory;
+
+  /**
    * batchSize = -1: Batch is send once when {@link #close()} is called
    * batchSize > 0: Batch is send, when currentBatchSize == batchSize
    */
@@ -79,6 +86,7 @@ public class Neo4jOutputFormat<OUT extends Tuple>
   @Override
   public void open(int taskNumber, int numTasks) throws IOException {
     parameterName = getParameterName();
+    nodeFactory = JsonNodeFactory.instance;
     initBatch();
   }
 
@@ -108,12 +116,12 @@ public class Neo4jOutputFormat<OUT extends Tuple>
 
   /**
    * Returns the parameter name contained in the query,
-   * e.g. "UNWIND {params} MATCH ..." returns "{UNWIND}"
+   * e.g. "UNWIND {params} MATCH ..." returns "params"
    *
    * @return parameter name
    */
   private String getParameterName() {
-    Pattern pattern = Pattern.compile("^[uU][nN][wW][iI][nN][dD] (\\{.+\\}) .*");
+    Pattern pattern = Pattern.compile("^[uU][nN][wW][iI][nN][dD] \\{(.+)\\} .*");
     Matcher matcher = pattern.matcher(getQuery());
     if (matcher.matches()) {
       return matcher.group(1);
@@ -124,7 +132,7 @@ public class Neo4jOutputFormat<OUT extends Tuple>
   private void initBatch() {
     payload = new StringBuilder();
     currentBatchSize = 0;
-    payload.append("[");
+    payload.append(String.format("\"%s\" : [", parameterName));
   }
 
   private void addToBatch(OUT tuple) throws IOException {
@@ -136,28 +144,33 @@ public class Neo4jOutputFormat<OUT extends Tuple>
       payload.append(",");
     }
 
-    payload.append("{");
+    ObjectNode node = nodeFactory.objectNode();
+
     for (int i = 0; i < elementKeys.length; i++) {
-      payload.append(elementKeys[i]).append(":");
-      if (elementTypes[i].equals(String.class)) {
-        payload.append("\\\"").append(tuple.getField(i)).append("\\\"");
+      if (elementTypes[i].equals(Boolean.class)) {
+        node.put(elementKeys[i], (Boolean) tuple.getField(i));
+      } else if (elementTypes[i].equals(Integer.class)) {
+        node.put(elementKeys[i], (Integer) tuple.getField(i));
+      } else if (elementTypes[i].equals(Long.class)) {
+        node.put(elementKeys[i], (Long) tuple.getField(i));
+      } else if (elementTypes[i].equals(Float.class)) {
+        node.put(elementKeys[i], (Float) tuple.getField(i));
+      } else if (elementTypes[i].equals(Double.class)) {
+        node.put(elementKeys[i], (Double) tuple.getField(i));
+      } else if (elementTypes[i].equals(String.class)) {
+        node.put(elementKeys[i], (String) tuple.getField(i));
       } else {
-        payload.append(tuple.getField(i));
-      }
-      if (i < elementKeys.length - 1) {
-        payload.append(",");
+        throw new IOException("Unsupported field type for value: " + tuple.getField(i));
       }
     }
-    payload.append("}");
+
+    payload.append(node.toString());
+
     currentBatchSize++;
   }
 
   private void finalizeBatch() {
     payload.append("]");
-  }
-
-  private String buildBatchQuery() {
-    return getQuery().replace(parameterName, payload.toString());
   }
 
   private void initValueTypes(OUT tuple) throws IOException {
@@ -190,14 +203,13 @@ public class Neo4jOutputFormat<OUT extends Tuple>
   private void sendBatch() throws IOException {
     Client client = createClient();
 
-    String batchQuery = buildBatchQuery();
-    String payload = String.format(PAYLOAD_TEMPLATE, batchQuery);
+    String requestPayload = String.format(PAYLOAD_TEMPLATE, getQuery(), payload.toString());
 
     ClientResponse response = client
       .resource(restURI + TRANSACTION_URI)
       .accept(MediaType.APPLICATION_JSON)
       .header("Content-Type", "application/json;charset=UTF-8")
-      .entity(payload)
+      .entity(requestPayload)
       .post(ClientResponse.class);
 
     if (response.getStatus() != Response.Status.OK.getStatusCode()) {
