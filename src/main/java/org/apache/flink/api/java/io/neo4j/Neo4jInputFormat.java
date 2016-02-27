@@ -29,7 +29,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.GenericInputSplit;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.core.io.InputSplitAssigner;
-import org.apache.flink.hadoop.shaded.com.google.common.base.Strings;
 import org.apache.flink.types.NullValue;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParser;
@@ -44,9 +43,15 @@ public class Neo4jInputFormat<OUT extends Tuple> extends Neo4jFormatBase
 
   private static final long serialVersionUID = 1L;
 
+  private static final String ROW_FIELD = "row";
+
   private transient ClientResponse response;
 
   private transient JsonParser jsonParser;
+
+  public Neo4jInputFormat(Builder builder) {
+    super(builder);
+  }
 
   @Override
   public void open(InputSplit ignored) throws IOException {
@@ -164,55 +169,23 @@ public class Neo4jInputFormat<OUT extends Tuple> extends Neo4jFormatBase
     return new DefaultInputSplitAssigner(inputSplits);
   }
 
-  public static Neo4jInputFormatBuilder buildNeo4jInputFormat() {
-    return new Neo4jInputFormatBuilder();
+  public static Builder buildNeo4jInputFormat() {
+    return new Builder();
   }
 
-  public static class Neo4jInputFormatBuilder {
-    private final Neo4jInputFormat format;
+  /**
+   * Used to build instances of {@link Neo4jInputFormat}.
+   */
+  public static class Builder extends Neo4jFormatBase.Builder<Builder> {
 
-    public Neo4jInputFormatBuilder() {
-      this.format = new Neo4jInputFormat();
-    }
-
-    public Neo4jInputFormatBuilder setRestURI(String restURL) {
-      format.restURI = restURL;
-      return this;
-    }
-
-    public Neo4jInputFormatBuilder setCypherQuery(String cypherQuery) {
-      format.query = cypherQuery;
-      return this;
-    }
-
-    public Neo4jInputFormatBuilder setUsername(String username) {
-      format.username = username;
-      return this;
-    }
-
-    public Neo4jInputFormatBuilder setPassword(String password) {
-      format.password = password;
-      return this;
-    }
-
-    public Neo4jInputFormatBuilder setConnectTimeout(int connectTimeout) {
-      format.connectTimeout = connectTimeout;
-      return this;
-    }
-
-    public Neo4jInputFormatBuilder setReadTimeout(int readTimeout) {
-      format.readTimeout = readTimeout;
+    @Override
+    public Builder getThis() {
       return this;
     }
 
     public Neo4jInputFormat finish() {
-      if (Strings.isNullOrEmpty(format.restURI)) {
-        throw new IllegalArgumentException("No Rest URI was supplied.");
-      }
-      if (Strings.isNullOrEmpty(format.query)) {
-        throw new IllegalArgumentException("No Cypher statement was supplied.");
-      }
-      return format;
+      validate();
+      return new Neo4jInputFormat(this);
     }
   }
 }

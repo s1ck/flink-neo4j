@@ -79,6 +79,12 @@ public class Neo4jOutputFormat<OUT extends Tuple>
    */
   private int currentBatchSize = 0;
 
+  public Neo4jOutputFormat(Builder builder) {
+    super(builder);
+    this.elementKeys = builder.elementKeys.toArray(this.elementKeys);
+    this.batchSize = builder.batchSize;
+  }
+
   @Override
   public void configure(Configuration configuration) {
   }
@@ -122,7 +128,7 @@ public class Neo4jOutputFormat<OUT extends Tuple>
    */
   private String getParameterName() {
     Pattern pattern = Pattern.compile("^[uU][nN][wW][iI][nN][dD] \\{(.+)\\} .*");
-    Matcher matcher = pattern.matcher(getQuery());
+    Matcher matcher = pattern.matcher(getCypherQuery());
     if (matcher.matches()) {
       return matcher.group(1);
     }
@@ -203,7 +209,7 @@ public class Neo4jOutputFormat<OUT extends Tuple>
   private void sendBatch() throws IOException {
     Client client = createClient();
 
-    String requestPayload = String.format(PAYLOAD_TEMPLATE, getQuery(), payload.toString());
+    String requestPayload = String.format(PAYLOAD_TEMPLATE, getCypherQuery(), payload.toString());
 
     ClientResponse response = client
       .resource(restURI + TRANSACTION_URI)
@@ -227,74 +233,84 @@ public class Neo4jOutputFormat<OUT extends Tuple>
     return currentBatchSize == batchSize;
   }
 
-  public static Neo4jOutputFormatBuilder buildNeo4jOutputFormat() {
-    return new Neo4jOutputFormatBuilder();
+  public static Builder buildNeo4jOutputFormat() {
+    return new Builder();
   }
 
-  public static class Neo4jOutputFormatBuilder {
-    private final Neo4jOutputFormat format = new Neo4jOutputFormat<>();
+  /**
+   * Used to build instances of {@link Neo4jOutputFormat}.
+   */
+  public static class Builder extends Neo4jFormatBase.Builder<Builder> {
 
-    private List<String> parameterKeys = Lists.newArrayList();
+    private List<String> elementKeys = Lists.newArrayList();
 
-    public Neo4jOutputFormatBuilder setRestURI(String restURI) {
-      format.restURI = restURI;
-      return this;
+    private int batchSize;
+
+    /**
+     * Used to tell the output format which parameter keys are used.
+     *
+     * Consider the following cypher query:
+     *
+     * UNWIND {inserts} AS i CREATE (a:User {name:i.name, born:i.born})
+     *
+     * The parameter keys in that example are "name" and "born".
+     *
+     * @param key parameter key used to set a literal
+     * @return builder
+     */
+    public Builder addParameterKey(String key) {
+      return addParameterKey(elementKeys.size(), key);
     }
 
-    public Neo4jOutputFormatBuilder setCypherQuery(String cypherQuery) {
-      format.query = cypherQuery;
-      return this;
-    }
-
-    public Neo4jOutputFormatBuilder setUsername(String username) {
-      format.username = username;
-      return this;
-    }
-
-    public Neo4jOutputFormatBuilder setPassword(String password) {
-      format.password = password;
-      return this;
-    }
-
-    public Neo4jOutputFormatBuilder setConnectTimeout(int connectTimeout) {
-      format.connectTimeout = connectTimeout;
-      return this;
-    }
-
-    public Neo4jOutputFormatBuilder setReadTimeout(int readTimeout) {
-      format.readTimeout = readTimeout;
-      return this;
-    }
-
-    public Neo4jOutputFormatBuilder addParameterKey(String key) {
-      return addParameterKey(parameterKeys.size(), key);
-    }
-
-    public Neo4jOutputFormatBuilder addParameterKey(int position, String key) {
+    /**
+     * Used to tell the output format which parameter keys are used.
+     *
+     * Consider the following cypher query:
+     *
+     * UNWIND {inserts} AS i CREATE (a:User {name:i.name, born:i.born})
+     *
+     * The parameter keys in that example are "name" and "born".
+     *
+     * @param position index of the key in the query
+     * @param key parameter key used to set a literal
+     * @return builder
+     */
+    public Builder addParameterKey(int position, String key) {
       checkArgument(!Strings.isNullOrEmpty(key), "Key must not be null or empty.");
-      parameterKeys.add(position, key);
-      return this;
+      elementKeys.add(position, key);
+      return getThis();
     }
 
-    public Neo4jOutputFormatBuilder setTaskBatchSize(int batchSize) {
+    /**
+     * Sets the batch size per Flink task. Output are written in parallel batches where each
+     * Flink task is responsible for a part of the dataset. Using this parameter, one can set
+     * how many elements are contained in a single batch sent by a Flink task.
+     *
+     * @param batchSize batch size per task
+     * @return builder
+     */
+    public Builder setTaskBatchSize(int batchSize) {
       checkArgument(batchSize >= 0, "Batch size must be greater or equal than zero.");
-      format.batchSize = batchSize;
+      this.batchSize = batchSize;
+      return getThis();
+    }
+
+    @Override
+    public Builder getThis() {
       return this;
     }
 
+    /**
+     * Creates the output format.
+     *
+     * @return output format
+     */
     public Neo4jOutputFormat finish() {
-      if (Strings.isNullOrEmpty(format.restURI)) {
-        throw new IllegalArgumentException("No Rest URI was supplied.");
-      }
-      if (Strings.isNullOrEmpty(format.query)) {
-        throw new IllegalArgumentException("No Cypher statement was supplied.");
-      }
-      if (parameterKeys.size() == 0) {
+      validate();
+      if (elementKeys.size() == 0) {
         throw new IllegalArgumentException("No parameter keys were supplied.");
       }
-      format.elementKeys = parameterKeys.toArray(format.elementKeys);
-
-      return format;
+      return new Neo4jOutputFormat(this);
     }
   }
 }
