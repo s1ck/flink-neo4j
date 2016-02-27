@@ -157,7 +157,7 @@ public abstract class Neo4jFormatBase implements Serializable {
      * @param userName Neo4j http auth username
      * @return builder
      */
-    public T setUserName(String userName) {
+    public T setUsername(String userName) {
       this.username = userName;
       return getThis();
     }

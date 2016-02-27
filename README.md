@@ -18,8 +18,8 @@ Neo4jInputFormat<Tuple3<Integer, String, Integer>> input = Neo4jInputFormat
     .setUsername("neo4j")
     .setPassword("password")
     .setCypherQuery("MATCH (n:User) RETURN id(n), n.name, n.born")
-    .setConnectTimeout(10000)
-    .setReadTimeout(10000)
+    .setConnectTimeout(10_000)
+    .setReadTimeout(10_000)
     .finish();
 
 DataSet<Tuple3<Integer, String, Integer>> vertices = env.createInput(input,
