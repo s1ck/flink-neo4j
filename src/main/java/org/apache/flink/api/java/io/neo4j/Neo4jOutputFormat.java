@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.apache.flink.shaded.com.google.common.base.Preconditions.checkArgument;
+import static org.apache.flink.util.Preconditions.checkArgument;
 
 public class Neo4jOutputFormat<OUT extends Tuple>
   extends Neo4jFormatBase implements OutputFormat<OUT> {
