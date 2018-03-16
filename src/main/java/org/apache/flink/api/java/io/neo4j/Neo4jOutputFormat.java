@@ -23,14 +23,13 @@ import com.sun.jersey.api.client.ClientResponse;
 import org.apache.flink.api.common.io.OutputFormat;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.hadoop.shaded.com.google.common.base.Strings;
-import org.apache.flink.hadoop.shaded.com.google.common.collect.Lists;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -242,7 +241,7 @@ public class Neo4jOutputFormat<OUT extends Tuple>
    */
   public static class Builder extends Neo4jFormatBase.Builder<Builder> {
 
-    private List<String> elementKeys = Lists.newArrayList();
+    private List<String> elementKeys = new ArrayList<>();
 
     private int batchSize;
 
@@ -276,7 +275,7 @@ public class Neo4jOutputFormat<OUT extends Tuple>
      * @return builder
      */
     public Builder addParameterKey(int position, String key) {
-      checkArgument(!Strings.isNullOrEmpty(key), "Key must not be null or empty.");
+      checkArgument(!(key.isEmpty() || key == null), "Key must not be null or empty.");
       elementKeys.add(position, key);
       return getThis();
     }

@@ -20,7 +20,6 @@ package org.apache.flink.api.java.io.neo4j;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import org.apache.flink.hadoop.shaded.com.google.common.base.Strings;
 
 import java.io.Serializable;
 
@@ -199,10 +198,10 @@ public abstract class Neo4jFormatBase implements Serializable {
      * Validates mandatory arguments.
      */
     protected void validate() {
-      if (Strings.isNullOrEmpty(restURI)) {
+      if (restURI.isEmpty() || restURI == null) {
         throw new IllegalArgumentException("No Rest URI was supplied.");
       }
-      if (Strings.isNullOrEmpty(query)) {
+      if (query.isEmpty() || query == null) {
         throw new IllegalArgumentException("No Cypher statement was supplied.");
       }
     }
