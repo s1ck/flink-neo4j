@@ -275,7 +275,7 @@ public class Neo4jOutputFormat<OUT extends Tuple>
      * @return builder
      */
     public Builder addParameterKey(int position, String key) {
-      checkArgument(!(key.isEmpty() || key == null), "Key must not be null or empty.");
+      checkArgument(!(key == null || key.isEmpty()), "Key must not be null or empty.");
       elementKeys.add(position, key);
       return getThis();
     }

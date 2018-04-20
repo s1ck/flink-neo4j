@@ -115,7 +115,12 @@ public class Neo4jInputFormat<OUT extends Tuple> extends Neo4jFormatBase
     for (int i = 0; i < fieldValues.size(); i++) {
       JsonNode fieldValue = fieldValues.get(i);
       if (fieldValue.isNull()) {
-        reuse.setField(NullValue.getInstance(), i);
+        if (reuse.getField(i).getClass().equals(String.class)) {
+          reuse.setField(fieldValue.getTextValue(), i);
+        } else {
+          reuse.setField(NullValue.getInstance(), i);
+        }
+          reuse.setField(NullValue.getInstance(), i);
       } else if (fieldValue.isBoolean()) {
         reuse.setField(fieldValue.getBooleanValue(), i);
       } else if (fieldValue.isInt()) {

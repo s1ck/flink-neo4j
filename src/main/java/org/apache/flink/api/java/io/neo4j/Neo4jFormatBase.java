@@ -198,10 +198,10 @@ public abstract class Neo4jFormatBase implements Serializable {
      * Validates mandatory arguments.
      */
     protected void validate() {
-      if (restURI.isEmpty() || restURI == null) {
+      if (restURI == null || restURI.isEmpty()) {
         throw new IllegalArgumentException("No Rest URI was supplied.");
       }
-      if (query.isEmpty() || query == null) {
+      if (query == null || query.isEmpty()) {
         throw new IllegalArgumentException("No Cypher statement was supplied.");
       }
     }
