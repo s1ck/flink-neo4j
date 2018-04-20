@@ -61,6 +61,10 @@
         <dep.jersey.version>1.19</dep.jersey.version>
         <dep.junit.version>4.12</dep.junit.version>
         <dep.neo4j.version>2.3.7</dep.neo4j.version>
+        <java.version>1.8</java.version>
+        <!--<scala.binary.version>2.11</scala.binary.version>-->
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <log4j.properties>log4j-test.properties</log4j.properties>
     </properties>
